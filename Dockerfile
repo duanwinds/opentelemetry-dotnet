@@ -9,11 +9,11 @@ WORKDIR /source
 COPY --link NuGet.config .
 COPY --link *.csproj .
 COPY --link *.config .
-RUN dotnet restore -r linux-musl-$TARGETARCH
+RUN dotnet restore -r linux-musl-$TARGETARCH o10y-dotnet.linux.csproj
 
 # Copy source code and publish app
 COPY --link . .
-RUN dotnet publish --no-restore -o /app o10y-dotnet.csproj
+RUN dotnet publish --no-restore -o /app o10y-dotnet.linux.csproj
 RUN rm -f /app/*.dbg /app/*.Development.json
 
 
@@ -23,4 +23,4 @@ FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-alpine-aot
 WORKDIR /app
 COPY --link --from=build /app .
 USER $APP_UID
-ENTRYPOINT ["./o10y-dotnet"]
+ENTRYPOINT ["./o10y-dotnet.linux"]
