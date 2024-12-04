@@ -2,11 +2,12 @@ namespace Pic.Infra3.o10y;
 
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Runtime.CompilerServices;
 
 public class Instrumentation : IDisposable
 {
-    internal const string ActivitySourceName = "Pic.Infra3.o10y";
-    internal const string MeterName = "Pic.Infra3.o10y";
+    internal const string ActivitySourceName = "Pic.O10y";
+    internal const string MeterName = "Pic.O10y";
     private readonly Meter meter;
 
     public Instrumentation()
@@ -25,5 +26,9 @@ public class Instrumentation : IDisposable
     {
         this.ActivitySource.Dispose();
         this.meter.Dispose();
+    }
+
+    public void AddDays(int days){
+        this.FreezingDaysCounter.Add(days);
     }
 }

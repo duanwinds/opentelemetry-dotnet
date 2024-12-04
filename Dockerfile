@@ -18,7 +18,8 @@ RUN rm -f /app/*.dbg /app/*.Development.json
 
 
 # Final stage/image
-FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-alpine-aot
+# FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-alpine-aot
+FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-jammy-chiseled-aot
 
 WORKDIR /app
 COPY --link --from=build /app .

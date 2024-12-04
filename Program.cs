@@ -16,16 +16,13 @@ var configuration = configurationBuilder.Build();
 
 var appBuilder = WebApplication.CreateBuilder(args);
 
-// var metricsExporter = appBuilder.Configuration.GetValue("UseMetricsExporter", defaultValue: "console")!.ToLowerInvariant();
-// var tracingExporter = appBuilder.Configuration.GetValue("UseTracingExporter", defaultValue: "console")!.ToLowerInvariant();
-// var logExporter = appBuilder.Configuration.GetValue("UseLogExporter", defaultValue: "console")!.ToLowerInvariant();
-// var histogramAggregation = appBuilder.Configuration.GetValue("HistogramAggregation", defaultValue: "explicit")!.ToLowerInvariant();
 var metricsExporter = configuration.GetValue("UseMetricsExporter", defaultValue: "console")!.ToLowerInvariant();
 var tracingExporter = configuration.GetValue("UseTracingExporter", defaultValue: "console")!.ToLowerInvariant();
 var logExporter = configuration.GetValue("UseLogExporter", defaultValue: "console")!.ToLowerInvariant();
 var histogramAggregation = configuration.GetValue("HistogramAggregation", defaultValue: "explicit")!.ToLowerInvariant();
 
 appBuilder.Services.AddSingleton<Instrumentation>();
+Console.WriteLine("{0}", Instrumentation.MeterName);
 
 appBuilder.Logging.ClearProviders();
 
@@ -41,11 +38,11 @@ appBuilder.Services.AddOpenTelemetry()
 
         // Ensure the MeterProvider subscribes to any custom Meters.
         builder
+            .AddAspNetCoreInstrumentation()
             .AddMeter(Instrumentation.MeterName)
             .SetExemplarFilter(ExemplarFilterType.TraceBased)
             .AddRuntimeInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddAspNetCoreInstrumentation();
+            .AddHttpClientInstrumentation();
 
         switch (histogramAggregation)
         {
@@ -161,6 +158,11 @@ if (metricsExporter.Equals("prometheus", StringComparison.OrdinalIgnoreCase))
     app.UseOpenTelemetryPrometheusScrapingEndpoint();
 }
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => {
+    return "Hello World!";
+});
+app.MapGet("/increase-days", (Instrumentation metrics) => {
+    metrics.AddDays(1);
+});
 
 app.Run();
