@@ -4,6 +4,7 @@
 **/out/
 **/.vs/
 **/.vscode/
+app/
 
 # files
 *.http
