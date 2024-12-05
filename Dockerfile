@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Learn about building .NET container images:
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/README.md
-FROM mcr.microsoft.com/dotnet/nightly/sdk:8.0-alpine-aot AS build
+FROM mcr.microsoft.com/dotnet/nightly/sdk:8.0-jammy-amd64 AS build
 ARG TARGETARCH
 WORKDIR /source
 
@@ -9,7 +9,7 @@ WORKDIR /source
 COPY --link NuGet.config .
 COPY --link *.csproj .
 COPY --link *.config .
-RUN dotnet restore -r linux-musl-$TARGETARCH o10y-dotnet.linux.csproj
+RUN dotnet restore -r linux-$TARGETARCH o10y-dotnet.linux.csproj
 
 # Copy source code and publish app
 COPY --link . .
@@ -18,10 +18,9 @@ RUN rm -f /app/*.dbg /app/*.Development.json
 
 
 # Final stage/image
-# FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-alpine-aot
-FROM mcr.microsoft.com/dotnet/nightly/runtime-deps:8.0-jammy-chiseled-aot
+FROM mcr.microsoft.com/dotnet/nightly/runtime:8.0.11-jammy-amd64
 
 WORKDIR /app
 COPY --link --from=build /app .
 USER $APP_UID
-ENTRYPOINT ["./o10y-dotnet.linux"]
+ENTRYPOINT ["./o10y"]
