@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: o10y
+  name: o10y
+  namespace: o10y
+spec:
+  selector:
+    matchLabels:
+      app: o10y
+  template:
+    metadata:
+      labels:
+        app: o10y
+    spec:
+      containers:
+      - image: duan4pic/o10y-test:v1
+        imagePullPolicy: IfNotPresent
+        name: o10y-test
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/appsettings.custom.json
+          subPath: appsettings.custom.json
+      restartPolicy: Always
+      volumes:
+      - name: config-volume
+        configMap:
+          name: appsettings
+          items:
+          - key: appsettings.custom.json
+            path: appsettings.custom.json
