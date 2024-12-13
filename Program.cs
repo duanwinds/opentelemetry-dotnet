@@ -8,6 +8,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Instrumentation.Runtime;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 var configurationBuilder = new ConfigurationBuilder();
 configurationBuilder.AddJsonFile("appsettings.json");
@@ -129,6 +130,8 @@ appBuilder.Services.AddOpenTelemetry()
                 {
                     // Use IConfiguration directly for Otlp exporter endpoint option.
                     otlpOptions.Endpoint = new Uri(configuration.GetValue("Otlp:Endpoint", defaultValue: "http://localhost:4317")!);
+                    // otlpOptions.Protocol = OtlpExportProtocol.Grpc;
+                    // otlpOptions.Headers = $"{headerKey}={headerValue}";
                 });
                 break;
             default:
@@ -158,11 +161,27 @@ if (metricsExporter.Equals("prometheus", StringComparison.OrdinalIgnoreCase))
     app.UseOpenTelemetryPrometheusScrapingEndpoint();
 }
 
-app.MapGet("/", () => {
-    return "Hello World!";
+app.MapGet("/", (ILogger<Program> logger, ActivitySource activitySource) =>
+{
+    using (var activity = activitySource.StartActivity("MyCustomOperation"))
+    {
+        var currentTime = DateTime.UtcNow.ToString();
+        logger.LogInformation($"Application Status changed to runnging at '{currentTime}'");
+
+        return $"Hello OpenTelemetry, here's my activity id: {Activity.Current?.Id}\n";
+    }
 });
+
 app.MapGet("/increase-days", (Instrumentation metrics) => {
     metrics.AddDays(1);
 });
 
+app.Logger.StartingApp();
 app.Run();
+
+public static partial class ApplicationLogs
+{
+    [LoggerMessage(1, LogLevel.Information, "Starting the app...")]
+    public static partial void StartingApp(this ILogger logger);
+
+}
