@@ -9,6 +9,7 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Instrumentation.Runtime;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
+using System.Text.Json;
 
 var configurationBuilder = new ConfigurationBuilder();
 configurationBuilder.AddJsonFile("appsettings.json");
@@ -113,7 +114,6 @@ appBuilder.Services.AddOpenTelemetry()
                     otlpOptions.Endpoint = new Uri(configuration.GetValue("Otlp:Endpoint", defaultValue: "http://localhost:4317")!);
                 });
                 break;
-
             default:
                 builder.AddConsoleExporter();
                 break;
@@ -161,12 +161,15 @@ if (metricsExporter.Equals("prometheus", StringComparison.OrdinalIgnoreCase))
     app.UseOpenTelemetryPrometheusScrapingEndpoint();
 }
 
-app.MapGet("/", (ILogger<Program> logger, ActivitySource activitySource) =>
+app.MapGet("/", async (ILogger<Program> logger, ActivitySource activitySource, HttpContext context) =>
 {
     using (var activity = activitySource.StartActivity("MyCustomOperation"))
     {
         var currentTime = DateTime.UtcNow.ToString();
         logger.LogInformation($"Application Status changed to runnging at '{currentTime}'");
+
+        var callSelfData = await GetSelfData(logger, activitySource, context);
+        logger.LogInformation($"Data: {callSelfData}");
 
         return $"Hello OpenTelemetry, here's my activity id: {Activity.Current?.Id}\n";
     }
@@ -176,8 +179,30 @@ app.MapGet("/increase-days", (Instrumentation metrics) => {
     metrics.AddDays(1);
 });
 
+app.MapGet("/hello", () => "test hello");
+
 app.Logger.StartingApp();
 app.Run();
+
+async Task<string> GetSelfData(ILogger logger, ActivitySource activitySource, HttpContext context)
+{
+    using (var httpClient = new HttpClient())
+    {
+        var request = context.Request.HttpContext.Request;
+        var url = new Uri($"{request.Scheme}://{request.Host}/hello");
+        var response = await httpClient.GetAsync(url);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            logger.LogInformation($"Response from the External API {content}");
+            return content;
+        }
+
+        logger.LogError("Unable to fetch data from the external API.");
+        return "Unable to fetch data";
+    }
+}
 
 public static partial class ApplicationLogs
 {
